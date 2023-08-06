@@ -12,7 +12,7 @@ void handle_sigpipe(int sig) {
 }
 
 int main() {
-   int an_pipe[2];
+   int a_pipe[2] = {0};
    char buff[BUFF_LEN + 1] = {0};
 
    if (pipe(an_pipe) == 0) { // {1}

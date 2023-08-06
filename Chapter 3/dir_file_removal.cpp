@@ -6,7 +6,8 @@ using namespace std::filesystem;
 
 int main() {
     if (exists("some_data")) {
-        auto space_obj = space(current_path());
+        std::filesystem::space_info space_obj = 
+            space(current_path());
         cout << "Capacity: " 
             << space_obj.capacity << endl;
         cout << "Free: " 

@@ -11,15 +11,15 @@ constexpr uint32_t limit = INT_MAX;
 
 void increment() {
     for (auto i = 0; i < limit; i++) {
-        unique_lock<mutex> lock(shres_guard);
+        lock_guard<mutex> lock(shres_guard);
         ++shared_resource;
     }
     cout << "\nIncrement finished!" << endl;
 }
 
 int main() {
-    std::thread t1(increment);
-    std::thread t2(increment);
+    jthread t1(increment);
+    jthread t2(increment);
 
     t1.join();
     t2.join();

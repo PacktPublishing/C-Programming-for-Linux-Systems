@@ -20,9 +20,9 @@ int main() {
     alignas(hardware_destructive_interference_size) 
         atomic<uint32_t> a_var3 = 0;
 
-    std::thread t1([&]() {increment(a_var1);});
-    std::thread t2([&]() {increment(a_var2);});
-    std::thread t3([&]() {increment(a_var3);});
+    jthread t1([&]() {increment(a_var1);});
+    jthread t2([&]() {increment(a_var2);});
+    jthread t3([&]() {increment(a_var3);});
 
     t1.join();
     t2.join();

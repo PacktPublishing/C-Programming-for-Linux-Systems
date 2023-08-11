@@ -65,8 +65,8 @@ void consumer() {
 }
 
 int main() {
-    thread produce([]{ producer(); });
-    thread consume([]{ consumer(); });
+    jthread produce([]{ producer(); });
+    jthread consume([]{ consumer(); });
     produce.join();
     consume.join();
     return 0;

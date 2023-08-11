@@ -5,6 +5,7 @@
 #include <thread>
 
 using namespace std;
+using namespace std::literals::chrono_literals;
 
 struct Settings {
     Settings(string_view fileName) {
@@ -38,7 +39,7 @@ struct Config {
 int main() {
     Config cfg;
     cout << "Application startup..." << endl;
-    this_thread::sleep_for(chrono::seconds(10));
+    this_thread::sleep_for(10s);
     cfg.changeSetting("Drive mode", "Sport");
     cfg.changeSetting("Gear label", "PRNDL");
 

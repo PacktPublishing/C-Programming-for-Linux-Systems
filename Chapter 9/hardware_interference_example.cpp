@@ -5,7 +5,7 @@
 #include <thread>
 
 using namespace std;
-using std::hardware_constructive_interference_size;
+using std::hardware_destructive_interference_size;
 
 void increment(std::atomic<uint32_t>& shared_res) {
     for(int i = 0; i < 100000; ++i) {shared_res++;}
@@ -13,11 +13,11 @@ void increment(std::atomic<uint32_t>& shared_res) {
 
 int main() {
     auto start = chrono::steady_clock::now();
-    alignas(hardware_constructive_interference_size) 
+    alignas(hardware_destructive_interference_size) 
         atomic<uint32_t> a_var1 = 0;
-    alignas(hardware_constructive_interference_size) 
+    alignas(hardware_destructive_interference_size) 
         atomic<uint32_t> a_var2 = 0;
-    alignas(hardware_constructive_interference_size) 
+    alignas(hardware_destructive_interference_size) 
         atomic<uint32_t> a_var3 = 0;
 
     std::thread t1([&]() {increment(a_var1);});
@@ -33,7 +33,7 @@ int main() {
         << " µs" << endl;
 
     cout << "L1 Cache Line size: "
-         << hardware_constructive_interference_size 
+         << hardware_destructive_interference_size 
          << " bytes" << endl;
 
     cout << "The atomic var size is: " << sizeof(a_var1)

@@ -25,8 +25,10 @@ struct ListNode {
 };
 
 int main() {
-    shared_ptr<ListNode> head{new ListNode{"Dune"}};
-    head->next = shared_ptr<ListNode>{new ListNode{"Jaws"}};
-    head->next->prev = head;
+    shared_ptr<ListNode> head =
+        make_shared<ListNode>("Dune");
+    head->next = make_shared<ListNode>("Jaws");
+    if (!head->next->prev.expired())
+        head->next->prev = head;
     return 0;
 }

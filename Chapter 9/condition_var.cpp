@@ -4,31 +4,32 @@
 #include <thread>
 using namespace std;
 
-mutex _mutex;
+mutex cv_mutex;
 condition_variable cond_var;
 
-void processing(){
+void processing() {
     cout << "Processing shared resource." << endl;
 }
 
-void waiting(){
-    std::cout << "Waiting for work..." << std::endl;
+void waiting() {
+    cout << "Waiting for work..." << endl;
 
-    std::unique_lock<std::mutex> lock(_mutex);
+    unique_lock<mutex> lock(cv_mutex);
     cond_var.wait(lock);
     processing();
-    std::cout << "Work done." << std::endl;
+    cout << "Work done." << endl;
 }
 
-void done(){
-    std::cout << "Shared resource ready."  << std::endl;
+void done() {
+    cout << "Shared resource ready."  << endl;
     cond_var.notify_one();
 }
 
-int main (){
-    std::thread t1(waiting);
-    std::thread t2(done);
+int main () {
+    jthread t1(waiting);
+    jthread t2(done);
 
     t1.join();
     t2.join();
+    return 0;
 }

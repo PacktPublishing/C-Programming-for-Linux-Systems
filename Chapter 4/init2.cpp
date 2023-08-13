@@ -1,5 +1,4 @@
 #include <string>
-
 class Person {
 public:
     explicit Person(const std::string& the_name) : name{the_name} {}
@@ -13,7 +12,7 @@ public:
 private:
     Person p;
 };
-void init2() {
+void init() {
     int c{2};
     double mm{0.0};
     Person john{"John M."};
@@ -31,6 +30,6 @@ void init2() {
 }
 
 int main() {
-    init2();
+    init();
     return 0;
 }

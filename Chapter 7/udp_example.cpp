@@ -1,5 +1,4 @@
 #include <array>
-#include <cstring>
 #include <iostream>
 
 #include <fcntl.h>
@@ -67,9 +66,9 @@ void process_creator() {
                 cout << "Request received: "
                      << buffer.data() << endl;
 
-                if (strncmp(buffer.data(), 
-                            request.data(), 
-                            bytes_received) == 0) { // {5}
+                if (request.compare(0, 
+                                    bytes_received, 
+                                    buffer.data()) == 0) { // {5}
                     string_view res_data
                         { to_string(die_roll()) }; 
                     sendto(sockfd, res_data.data(),

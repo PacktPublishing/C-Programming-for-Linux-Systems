@@ -2,6 +2,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include <array>
+#include <optional>
 #include <coroutine>
 #include <iostream>
 #include <memory>
@@ -11,7 +13,7 @@
 using namespace std;
 
 constexpr size_t BUF_SIZE = 256;
-constexpr auto   PORT     = 8080;
+constexpr auto   PORT = 8080;
 
 template<typename T>
 struct Generator {
@@ -36,7 +38,7 @@ struct Generator {
         }
 
         auto yield_value(const T value) {          // {1}
-            current_value = value;
+            currValue = value;
             return suspend_always{};
         }
 
@@ -44,7 +46,7 @@ struct Generator {
             exit(EXIT_FAILURE);                    // {2}
         }
 
-        T current_value;
+        T currValue;
     };
 
 private:
@@ -58,60 +60,61 @@ public:
     ~Generator() {
         if (c_routine) c_routine.destroy();              // {4}
     }
-    Generator(const Generator&)              = delete;
+    Generator(const Generator&) = delete;
     Generator& operator = (const Generator&) = delete;
-    Generator(Generator&& other) noexcept : 
+    Generator(Generator&& other) noexcept :
         c_routine(other.c_routine) {
-        other.c_routine = nullptr;
+        other.c_routine = {};
     }
     Generator& operator = (Generator&& other) noexcept {
+        if (this == &other)
+            return *this;
+        if (c_routine)
+            c_routine.destroy();
         c_routine = other.c_routine;
-        other.c_routine = nullptr;
+        other.c_routine = {};
         return *this;
     }
 
-    T getCurrentValue() {
-        return c_routine.promise().current_value;
-    }
-
-    bool proceed() {                                             
+    optional<T> operator()() {
         c_routine.resume();
-        return not c_routine.done();                    // {5}
+        if (c_routine.done()) {
+            return nullopt;
+        }
+        return c_routine.promise().currValue;
     }
 };
 
-Generator<size_t> send_to(int sockfd, 
-                          string_view buffer, 
-                          auto servaddr) noexcept {
+Generator<size_t> send_to(int sockfd,
+    string_view buffer,
+    auto servaddr) noexcept {
     for (;;) {
         auto value = sendto(sockfd,
                             buffer.data(),
                             buffer.size(),
-                            0,
+                            MSG_DONTWAIT,
                             (const struct sockaddr*)
-                                &servaddr,
-                            sizeof(servaddr));          // {6}
+                            &servaddr,
+            sizeof(servaddr));          // {6}
 
         co_yield value;                                 // {7}
     }
 }
 
-Generator<string_view> recv_from(int sockfd, 
-                                 auto clntaddr, 
-                                 size_t buf_size = BUF_SIZE) 
-                                    noexcept {
+Generator<string> recv_from(int sockfd,
+                            auto clntaddr,
+                            size_t buf_size = BUF_SIZE)
+                            noexcept {
     socklen_t len = sizeof(struct sockaddr_in);
-    char tmp_buf[BUF_SIZE] = { 0 };
+    array<char, BUF_SIZE> tmp_buf = {};
     for (;;) {
-         recvfrom(sockfd,
-                  (char *)tmp_buf,
-                  buf_size,
-                  MSG_DONTWAIT,
-                  (struct sockaddr*)&clntaddr,
-                  &len);                                
-
-        auto value{ tmp_buf };
-        co_yield value;                                // {8}
+        recvfrom(sockfd,
+                 tmp_buf.data(),
+                 tmp_buf.size(),
+                 MSG_DONTWAIT,
+                 (struct sockaddr*)&clntaddr,
+                 &len);
+        co_yield tmp_buf.data(); // {8}
     }
 }
 
@@ -119,11 +122,13 @@ int main() {
     auto sockfd = 0;
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
+        const auto ecode{ make_error_code(errc{errno}) };
+        cerr << "Error opening shm region";
+        system_error exception{ ecode };
+        throw exception;
     }
 
-    auto server = thread([&sockfd] {
+    auto server = jthread([&sockfd] {
         struct sockaddr_in servaddr = { 0 };
         servaddr.sin_family = AF_INET;
         servaddr.sin_addr.s_addr = INADDR_ANY;
@@ -140,22 +145,22 @@ int main() {
         string_view message{ "This is a test!" };
         auto sender = send_to(sockfd, message, servaddr); // {9}
         for (int i = 1; i <= 10; i++) {
-            sender.proceed();
-            cout << i << " Bytes sent: " 
-                 << sender.getCurrentValue() << endl;     // {10}
+            auto sentData = sender();
+            cout << i << " Bytes sent: "
+                << *sentData << endl;     // {10}
         }
-    });
+        });
 
-    auto client = thread([&sockfd] {
+    auto client = jthread([&sockfd] {
         cout << "\nrecv_from():\n" << endl;
         struct sockaddr_in clntaddr = { 0 };
         auto receiver = recv_from(sockfd, clntaddr);
-        for (int i = 1; i <= 10; i++) {
-            receiver.proceed();
-            cout << i << " Message received: " 
-                 << receiver.getCurrentValue() << endl;   // {11}
+        for (auto i = 1; i <= 10; i++) {
+            auto recvData = receiver();
+            cout << i << " Message received: "
+                << *recvData << endl;   // {11}
         }
-    });
+        });
 
     server.join();
     client.join();

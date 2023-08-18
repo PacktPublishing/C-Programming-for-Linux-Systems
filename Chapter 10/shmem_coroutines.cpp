@@ -15,9 +15,10 @@
 #include <sys/mman.h>
 
 constexpr auto PROT_RW = PROT_READ | PROT_WRITE;
-constexpr auto SHM_ID = "/test_shm";
+constexpr auto SHM_ID  = "/test_shm";
 
 using namespace std;
+using namespace std::chrono_literals;
 
 string_view message = "This is a testing message!";
 
@@ -63,8 +64,8 @@ private:
     coroutine_handle<> coroutineHandle;
 };
 
-bool 
-Event::Awaiter::await_suspend(coroutine_handle<> handle) 
+bool
+Event::Awaiter::await_suspend(coroutine_handle<> handle)
 noexcept {
     coroutineHandle = handle;
 
@@ -94,17 +95,21 @@ template<typename T, typename N>
 void Event::notify(T buffer, int fd, N size) noexcept {
     notified = false;
 
-    auto* waiter = 
+    auto* waiter =
         static_cast<Awaiter*>(suspended.load());
     if (waiter != nullptr) {
         ftruncate(fd, size);
-        if (auto ptr = mmap(0, size,
-                            PROT_RW, MAP_SHARED,
-                            fd, 0)) {
-            auto obj = new (ptr) T(buffer);
+        if (const auto ptr = mmap(0, size,
+                                  PROT_RW, MAP_SHARED,
+                                  fd, 0); ptr != MAP_FAILED) {
+            auto* obj = new (ptr) T(buffer);
             auto del = mmap_deallocator<T>(size);
-            auto res = 
+            auto res =
                 unique_ptr<T, mmap_deallocator<T>>(obj, del);
+            // You can do something else with res, if required.
+        }
+        else {
+            cerr << "Error mapping shm region";
         }
         waiter->coroutineHandle.resume();
     }
@@ -112,37 +117,52 @@ void Event::notify(T buffer, int fd, N size) noexcept {
 
 template<typename T, typename N>
 Task receiver(Event& event, int fd, N size) {
-    ftruncate(fd, size);
-    if (auto ptr = mmap(0, size,
-                        PROT_RW, MAP_SHARED,
-                        fd, 0)) {
-        auto obj = static_cast<T*>(ptr);
-        auto del = mmap_deallocator<T>(size);
-        auto res = 
-            unique_ptr<T, mmap_deallocator<T>>(obj, del);
-        cout << *res << endl;
-    }
     co_await event;
+    ftruncate(fd, size);
+    if (const auto ptr = mmap(0, size,
+                              PROT_RW, MAP_SHARED,
+                              fd, 0); ptr != MAP_FAILED) {
+        auto* obj = static_cast<T*>(ptr);
+        auto del = mmap_deallocator<T>(size);
+        auto res =
+            unique_ptr<T, mmap_deallocator<T>>(obj, del);
+
+        if (res != nullptr)
+            cout << "Receiver: " << *res << endl;
+    }
+    else {
+        cerr << "Error mapping shm region";
+    }
 }
 
 int main() {
     Event event{};
-    int fd = shm_open(SHM_ID, O_CREAT | O_RDWR, 0644);
-    auto senderT = thread([&event, &fd]{
-         event.notify<const char*, size_t>(message.data(), 
-                                           fd, 
-                                           message.size());
-    });
+    if (int fd = shm_open(SHM_ID, O_CREAT | O_RDWR, 0644);
+        fd > 0) {
+        auto receiverT = jthread([&event, &fd]{
+             receiver<char*, size_t>(ref(event),
+                                     fd,
+                                     (message.size()));
+            });
 
-    auto receiverT = thread([&event, &fd]{
-         receiver<char*, size_t>(ref(event), 
-                                 fd, 
-                                 (message.size()));
-    });
+        auto senderT = jthread([&event, &fd]{
+             this_thread::sleep_for(2s);
+             event.notify<const char*, size_t>(message.data(),
+                                               fd,
+                                               message.size());
+            });
 
-    senderT.join();
-    receiverT.join();
-    close(fd);
+        receiverT.join();
+        senderT.join();
+        close(fd);
+        shm_unlink(SHM_ID);
+    }
+    else {
+        const auto ecode{ make_error_code(errc{errno}) };
+        cerr << "Error opening shm region";
+        system_error exception{ ecode };
+        throw exception;
+    }
 
     return 0;
 }

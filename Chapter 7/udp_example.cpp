@@ -99,7 +99,7 @@ void process_creator() {
     else if (pid > 0) {
         // Parent
         int32_t dice_rolls;
-        cout << "Chose a number of dice throws"
+        cout << "Choose a number of dice throws"
             << " between 1 and 256." << endl;
         cin >> dice_rolls;
         if (dice_rolls <= 0 and dice_rolls > 256) { // {9}
@@ -118,11 +118,11 @@ void process_creator() {
         socklen_t len = 0;
         for (auto i = 1; i <= dice_rolls; i++) { // {11}    
             if (auto b_sent = sendto(sockfd,
-                request.data(),
-                request.size(),
-                MSG_DONTWAIT,
-                (const struct sockaddr*)&servaddr,
-                sizeof(servaddr)); b_sent >= 0) { // {12}
+                                     request.data(),
+                                     request.size(),
+                                     MSG_DONTWAIT,
+                                     (const struct sockaddr*)&servaddr,
+                                     sizeof(servaddr)); b_sent >= 0) { // {12}
             }
             else {
                 const auto ecode

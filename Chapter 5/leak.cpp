@@ -1,3 +1,7 @@
+#include <iostream>
+#include <fcntl.h>
+#include <unistd.h>
+
 int main() {
     try {
         const int fd{open("/tmp/cpp-test-file", O_RDONLY)}; // {1}

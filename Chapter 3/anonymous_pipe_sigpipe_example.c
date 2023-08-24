@@ -15,12 +15,12 @@ int main() {
    int a_pipe[2] = {0};
    char buff[BUFF_LEN + 1] = {0};
 
-   if (pipe(an_pipe) == 0) { // {1}
+   if (pipe(a_pipe) == 0) { // {1}
       int pid = fork();
 
       if (pid == 0) {
-         close(an_pipe[pipeOut]); // {2}
-         close(an_pipe[pipeIn]);
+         close(a_pipe[pipeOut]); // {2}
+         close(a_pipe[pipeIn]);
       }
       else {
          struct sigaction act = {0};
@@ -31,10 +31,10 @@ int main() {
             perror("sigaction");
             return (1);
          }
-         close(an_pipe[pipeIn]);
+         close(a_pipe[pipeIn]);
          sleep(1);
          const char *msg = {"Sending message to child!"};
-         write(an_pipe[pipeOut], msg, strlen(msg) + 1); // {5}
+         write(a_pipe[pipeOut], msg, strlen(msg) + 1); // {5}
       }
    }
 

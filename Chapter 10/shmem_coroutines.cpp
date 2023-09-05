@@ -29,6 +29,7 @@ struct mmap_deallocator {
 
     void operator()(T* ptr) const {
         munmap(ptr, m_size);
+        ptr->~T();
     }
 };
 

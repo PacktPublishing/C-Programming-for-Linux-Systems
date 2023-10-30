@@ -53,7 +53,7 @@ int main() {
                          buffer.data(), 
                          buffer.size(), 
                          MSG_PEEK);
-                    res > 0) {
+                    b_recv > 0) {
                 buffer.data()[b_recv] = '\0';
                 cout << "Server response: " 
                      << buffer.data();

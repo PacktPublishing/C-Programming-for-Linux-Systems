@@ -22,7 +22,7 @@ int main() {
     cout << book1_new->title << endl;
 
     shared_ptr<Book> book2 = 
-        make_unique<Book>("Dune");
+        make_shared<Book>("Dune");
     shared_ptr<Book> book2_new;
     book2_new = book2;
 

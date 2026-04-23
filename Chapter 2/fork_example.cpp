@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 using namespace std;
+
 void process_creator() {
 
     if (fork() == 0) {
         cout << "Child process id: " << getpid() << endl;
         exit(EXIT_SUCCESS);
-    }
-    else {
+    } else {
         cout << "Parent process id: " << getpid() << endl;
     }
 }

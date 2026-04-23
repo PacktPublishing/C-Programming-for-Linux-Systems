@@ -5,10 +5,11 @@ using namespace std;
 
 void process_creator() {
 
-    if (execvp("./test_fork", NULL) == -1)
+    if (execvp("./test_fork", NULL) == -1) {
         cout << "Process creation failed!" << endl;
-    else
+    } else {
         cout << "Process called!" << endl;
+    }
 }
 
 int main() {
